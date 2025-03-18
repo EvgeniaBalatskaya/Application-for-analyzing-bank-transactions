@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "application-for-analyzing-bank-transactions"
+version = "0.1.0"
+description = "A project for analyzing bank transactions"
+authors = ["Evgenia <evgeniabalackaa6@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.13.2"
+pandas = "^2.2.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
