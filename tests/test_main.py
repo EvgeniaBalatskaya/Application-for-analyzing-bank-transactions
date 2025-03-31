@@ -1,4 +1,5 @@
 import unittest
+
 from unittest.mock import MagicMock, patch
 
 from src.main import main

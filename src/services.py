@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Any, Dict, List
 
 
 def calculate_cashback(categories: List[str], spending: Dict[str, float]) -> Dict[str, float]:
@@ -19,7 +19,7 @@ def calculate_cashback(categories: List[str], spending: Dict[str, float]) -> Dic
     return cashback
 
 
-def analyze_expenses(expenses: List[Dict[str, float]]) -> Dict[str, float]:
+def analyze_expenses(expenses: List[Dict[str, Any]]) -> Dict[str, float]:
     """
     Анализ расходов, классификация по категориям
     """

@@ -1,13 +1,15 @@
+import json
 import os
 import sys
-import json
-
-# Добавление корневого каталога проекта в sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.services import analyze_expenses, calculate_cashback
 from src.utils import read_excel
 from src.views import generate_report
+
+
+# Добавление корневого каталога проекта в sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def main() -> None:
     # Чтение данных из файла
@@ -20,10 +22,12 @@ def main() -> None:
         expenses = []
         for record in excel_data.to_dict(orient="records"):
             if "Категория" in record and "Сумма операции" in record:
-                expenses.append({
-                    "category": record["Категория"],
-                    "amount": record["Сумма операции"],
-                })
+                expenses.append(
+                    {
+                        "category": record["Категория"],
+                        "amount": record["Сумма операции"],
+                    }
+                )
             else:
                 print(f"Запись пропущена из-за отсутствия ключей: {record}")
 
@@ -46,6 +50,7 @@ def main() -> None:
 
     else:
         print("Не удалось загрузить данные из Excel-файла.")
+
 
 if __name__ == "__main__":
     main()

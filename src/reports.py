@@ -1,10 +1,12 @@
 import json
 import logging
+
 from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Dict
 
 import requests
+
 
 # Настроим логирование
 logging.basicConfig(level=logging.INFO, filename="reports.log", filemode="a", format="%(asctime)s - %(message)s")
@@ -14,11 +16,13 @@ def log_report(func: Callable[..., Dict[str, Any]]) -> Callable[..., Dict[str, A
     """
     Декоратор для логирования отчетов
     """
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Dict[str, Any]:
         report = func(*args, **kwargs)
         logging.info(f"Generated Report: {json.dumps(report, indent=4)}")
         return report
+
     return wrapper
 
 

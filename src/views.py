@@ -1,4 +1,5 @@
 import json
+
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -37,7 +38,7 @@ def get_stock_prices() -> Dict[str, Any]:
         return {}
 
 
-def generate_report(expenses: List[Dict[str, float]]) -> str:
+def generate_report(expenses: List[Dict[str, Any]]) -> str:
     """
     Генерация JSON-отчета с расходами и другими данными
     """

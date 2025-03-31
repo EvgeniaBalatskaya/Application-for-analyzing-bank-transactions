@@ -1,4 +1,5 @@
 import unittest
+
 from unittest.mock import patch
 
 from src.views import generate_report, get_exchange_rates, get_stock_prices
