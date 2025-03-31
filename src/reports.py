@@ -2,28 +2,9 @@ import json
 import logging
 
 from datetime import datetime
-from functools import wraps
-from typing import Any, Callable, Dict
+from typing import Any, Dict, List
 
 import requests
-
-
-# Настроим логирование
-logging.basicConfig(level=logging.INFO, filename="reports.log", filemode="a", format="%(asctime)s - %(message)s")
-
-
-def log_report(func: Callable[..., Dict[str, Any]]) -> Callable[..., Dict[str, Any]]:
-    """
-    Декоратор для логирования отчетов
-    """
-
-    @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Dict[str, Any]:
-        report = func(*args, **kwargs)
-        logging.info(f"Generated Report: {json.dumps(report, indent=4)}")
-        return report
-
-    return wrapper
 
 
 def get_exchange_rates() -> Dict[str, float]:
@@ -58,8 +39,24 @@ def get_stock_prices() -> Dict[str, Any]:
         return {}
 
 
-@log_report
-def generate_report_with_logging(expenses: list) -> Dict[str, Any]:
+def generate_report(expenses: List[Dict[str, Any]]) -> str:
+    """
+    Генерация JSON-отчета с расходами и другими данными
+    """
+    exchange_rates = get_exchange_rates()
+    stock_prices = get_stock_prices()
+
+    report = {
+        "date": datetime.now().isoformat(),
+        "expenses": expenses,
+        "exchange_rates": exchange_rates,
+        "stock_prices": stock_prices,
+    }
+
+    return json.dumps(report, indent=4)
+
+
+def generate_report_with_logging(expenses: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Генерация отчета с логированием
     """
@@ -72,10 +69,5 @@ def generate_report_with_logging(expenses: list) -> Dict[str, Any]:
         "exchange_rates": exchange_rates,
         "stock_prices": stock_prices,
     }
+    logging.info(f"Generated Report: {json.dumps(report, indent=4)}")
     return report
-
-
-# Пример использования
-if __name__ == "__main__":
-    expenses = [{"category": "Food", "amount": 100.0}, {"category": "Transport", "amount": 50.0}]
-    print(generate_report_with_logging(expenses))
