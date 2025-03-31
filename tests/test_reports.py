@@ -1,19 +1,34 @@
 import pytest
-import pandas as pd
-from datetime import datetime
-from src.reports import spending_by_category
+from src.reports import get_exchange_rates, get_stock_prices, generate_report_with_logging
+from unittest.mock import patch
 
-@pytest.fixture
-def transactions():
-    data = {
-        'Дата операции': [datetime(2025, 1, 1), datetime(2025, 2, 1), datetime(2025, 3, 1)],
-        'Категория': ['Супермаркеты', 'Супермаркеты', 'Супермаркеты'],
-        'Сумма платежа': [100, 200, 300]
-    }
-    return pd.DataFrame(data)
+def test_get_exchange_rates():
+    with patch('requests.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "rates": {"USD": 1.0, "EUR": 0.9}
+        }
+        rates = get_exchange_rates()
+        assert "USD" in rates
+        assert "EUR" in rates
 
-def test_spending_by_category(transactions):
-    category = 'Супермаркеты'
-    date = '2025-03-31'
-    response = spending_by_category(transactions, category, date)
-    assert response['Сумма платежа'].sum() == 600
+def test_get_stock_prices():
+    with patch('requests.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "AAPL": 150.0, "AMZN": 3200.0
+        }
+        prices = get_stock_prices()
+        assert "AAPL" in prices
+        assert "AMZN" in prices
+
+def test_generate_report_with_logging():
+    expenses = [{"category": "Food", "amount": 100}, {"category": "Transport", "amount": 50}]
+    with patch('src.reports.get_exchange_rates') as mock_get_exchange_rates:
+        with patch('src.reports.get_stock_prices') as mock_get_stock_prices:
+            mock_get_exchange_rates.return_value = {"USD": 1.0, "EUR": 0.9}
+            mock_get_stock_prices.return_value = {"AAPL": 150.0, "AMZN": 3200.0}
+            report = generate_report_with_logging(expenses)
+            assert "expenses" in report
+            assert "exchange_rates" in report
+            assert "stock_prices" in report

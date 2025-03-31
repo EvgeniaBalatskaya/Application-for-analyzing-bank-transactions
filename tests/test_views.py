@@ -1,33 +1,34 @@
 import pytest
-import pandas as pd
-import json
-from datetime import datetime
-from src.views import main_page, read_transactions
+from src.views import get_exchange_rates, get_stock_prices, generate_report
+from unittest.mock import patch
 
-@pytest.fixture
-def transactions():
-    data = {
-        'Дата операции': [datetime(2025, 3, 1), datetime(2025, 3, 2), datetime(2025, 3, 3)],
-        'Номер карты': ['1234', '5678', '1234'],
-        'Сумма платежа': [100, 200, 300],
-        'Кешбэк': [1, 2, 3],
-        'Категория': ['Супермаркеты', 'Фастфуд', 'Супермаркеты'],
-        'Описание': ['Покупка 1', 'Покупка 2', 'Покупка 3']
-    }
-    return pd.DataFrame(data)
+def test_get_exchange_rates():
+    with patch('requests.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "rates": {"USD": 1.0, "EUR": 0.9}
+        }
+        rates = get_exchange_rates()
+        assert "USD" in rates
+        assert "EUR" in rates
 
-@pytest.fixture
-def user_settings():
-    return {
-        "user_currencies": ["USD", "EUR"],
-        "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
-    }
+def test_get_stock_prices():
+    with patch('requests.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "AAPL": 150.0, "AMZN": 3200.0
+        }
+        prices = get_stock_prices()
+        assert "AAPL" in prices
+        assert "AMZN" in prices
 
-def test_main_page(transactions, user_settings):
-    date_str = "2025-03-31 12:37:12"
-    response = main_page(date_str, transactions, user_settings)
-    assert 'greeting' in response
-    assert 'cards' in response
-    assert 'top_transactions' in response
-    assert 'currency_rates' in response
-    assert 'stock_prices' in response
+def test_generate_report():
+    expenses = [{"category": "Food", "amount": 100}, {"category": "Transport", "amount": 50}]
+    with patch('src.views.get_exchange_rates') as mock_get_exchange_rates:
+        with patch('src.views.get_stock_prices') as mock_get_stock_prices:
+            mock_get_exchange_rates.return_value = {"USD": 1.0, "EUR": 0.9}
+            mock_get_stock_prices.return_value = {"AAPL": 150.0, "AMZN": 3200.0}
+            report = generate_report(expenses)
+            assert "expenses" in report
+            assert "exchange_rates" in report
+            assert "stock_prices" in report

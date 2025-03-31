@@ -1,31 +1,46 @@
-import pandas as pd
 import json
-import os
+import pandas as pd
 
-
-def read_transactions(file_path: str) -> pd.DataFrame:
+def read_excel(file_path):
     """
-    Читает транзакции из Excel-файла.
-
-    :param file_path: Путь до файла.
-    :return: DataFrame с транзакциями.
-    :raises FileNotFoundError: Если файл не найден.
+    Чтение данных из Excel-файла
     """
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Файл {file_path} не найден.")
-    return pd.read_excel(file_path)
+    try:
+        data = pd.read_excel(file_path)
+        return data
+    except Exception as e:
+        print(f"Ошибка при чтении Excel-файла: {e}")
+        return None
 
-
-def load_user_settings(file_path: str) -> dict:
+def read_json(file_path):
     """
-    Загружает пользовательские настройки из JSON-файла.
-
-    :param file_path: Путь до файла.
-    :return: Словарь с пользовательскими настройками.
-    :raises FileNotFoundError: Если файл не найден.
+    Чтение данных из JSON-файла
     """
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Файл {file_path} не найден.")
-    with open(file_path, 'r', encoding='utf-8') as f:
-        settings = json.load(f)
-    return settings
+    try:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+        return data
+    except Exception as e:
+        print(f"Ошибка при чтении JSON-файла: {e}")
+        return None
+
+def mask_sensitive_data(data, mask_char="*"):
+    """
+    Маскировка чувствительных данных (например, номеров карт)
+    """
+    if isinstance(data, str):
+        return mask_char * len(data)
+    return data
+
+# Пример использования
+if __name__ == "__main__":
+    excel_data = read_excel("data/operations.xlsx")
+    if excel_data is not None:
+        print(excel_data.head())
+
+    json_data = read_json("data/transactions.json")
+    if json_data is not None:
+        print(json_data)
+
+    sensitive_info = "1234-5678-9876-5432"
+    print(mask_sensitive_data(sensitive_info))

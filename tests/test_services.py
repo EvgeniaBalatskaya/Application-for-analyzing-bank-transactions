@@ -1,15 +1,21 @@
 import pytest
-import json
-from datetime import datetime
-from src.services import analyze_cashback_categories
+from src.services import calculate_cashback, analyze_expenses
 
-def test_analyze_cashback_categories():
-    data = [
-        {'Дата операции': datetime(2025, 3, 1), 'Категория': 'Супермаркеты', 'Кешбэк': 10},
-        {'Дата операции': datetime(2025, 3, 2), 'Категория': 'Супермаркеты', 'Кешбэк': 15},
-        {'Дата операции': datetime(2025, 3, 3), 'Категория': 'Фастфуд', 'Кешбэк': 5}
+def test_calculate_cashback():
+    spending = {"Food": 200, "Transport": 50, "Entertainment": 100}
+    cashback = calculate_cashback([], spending)
+    assert cashback["Food"] == 200 * 0.05
+    assert cashback["Transport"] == 50 * 0.03
+    assert cashback["Entertainment"] == 100 * 0.07
+
+def test_analyze_expenses():
+    expenses = [
+        {"category": "Food", "amount": 200},
+        {"category": "Transport", "amount": 50},
+        {"category": "Entertainment", "amount": 100},
+        {"category": "Food", "amount": 50},
     ]
-    year = 2025
-    month = 3
-    response = analyze_cashback_categories(data, year, month)
-    assert json.loads(response) == {'Супермаркеты': 25, 'Фастфуд': 5}
+    categorized_expenses = analyze_expenses(expenses)
+    assert categorized_expenses["Food"] == 250
+    assert categorized_expenses["Transport"] == 50
+    assert categorized_expenses["Entertainment"] == 100

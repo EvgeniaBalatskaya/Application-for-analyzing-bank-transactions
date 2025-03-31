@@ -1,30 +1,66 @@
 import json
-import pandas as pd
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime
+from functools import wraps
+import requests
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Настроим логирование
+logging.basicConfig(level=logging.INFO, filename="reports.log", filemode="a", format="%(asctime)s - %(message)s")
 
-
-def spending_by_category(transactions: pd.DataFrame, category: str, date: str = None) -> pd.DataFrame:
+def log_report(func):
     """
-    Возвращает траты по заданной категории за последние три месяца от переданной даты.
-
-    :param transactions: DataFrame с транзакциями.
-    :param category: Название категории.
-    :param date: Дата отсчета трехмесячного периода.
-    :return: DataFrame с тратами по заданной категории.
+    Декоратор для логирования отчетов
     """
-    if date is None:
-        date = datetime.now()
-    else:
-        date = datetime.strptime(date, "%Y-%m-%d")
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        report = func(*args, **kwargs)
+        logging.info(f"Generated Report: {json.dumps(report, indent=4)}")
+        return report
+    return wrapper
 
-    three_months_ago = date - timedelta(days=90)
-    filtered_transactions = transactions[
-        (transactions['Категория'] == category) & (transactions['Дата операции'] >= three_months_ago) & (
-                    transactions['Дата операции'] <= date)]
+def get_exchange_rates():
+    """
+    Получить текущие курсы валют через API
+    """
+    try:
+        response = requests.get("https://api.exchangerate-api.com/v4/latest/USD")
+        response.raise_for_status()  # Поднимет исключение для плохого ответа
+        data = response.json()
+        return data["rates"]
+    except requests.RequestException as e:
+        print(f"Ошибка при получении курсов валют: {e}")
+        return {}
 
-    logging.info("Generated spending report for category '%s' from %s to %s", category,
-                 three_months_ago.strftime("%Y-%m-%d"), date.strftime("%Y-%m-%d"))
-    return filtered_transactions.groupby('Категория')['Сумма платежа'].sum().reset_index()
+def get_stock_prices():
+    """
+    Получить текущие цены на акции через API
+    """
+    try:
+        response = requests.get("https://api.stockprice-api.com/v1/prices")
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except requests.RequestException as e:
+        print(f"Ошибка при получении цен на акции: {e}")
+        return {}
+
+@log_report
+def generate_report_with_logging(expenses):
+    """
+    Генерация отчета с логированием
+    """
+    exchange_rates = get_exchange_rates()
+    stock_prices = get_stock_prices()
+
+    report = {
+        "date": datetime.now().isoformat(),
+        "expenses": expenses,
+        "exchange_rates": exchange_rates,
+        "stock_prices": stock_prices,
+    }
+    return report
+
+# Пример использования
+if __name__ == "__main__":
+    expenses = [{"category": "Food", "amount": 100}, {"category": "Transport", "amount": 50}]
+    print(generate_report_with_logging(expenses))

@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import json
-from src.utils import read_transactions, load_user_settings
+from src.utils import read_excel, read_json, mask_sensitive_data
 import os
 
 # Создание временного Excel файла для тестов
@@ -41,15 +41,20 @@ def user_settings_file(tmp_path):
         json.dump(data, f)
     return file_path
 
-def test_read_transactions(transactions_file):
-    df = read_transactions(transactions_file)
+def test_read_excel(transactions_file):
+    df = read_excel(transactions_file)
     assert not df.empty
     assert len(df) == 3
     assert df['Дата операции'].iloc[0] == '2025-03-01'
 
-def test_load_user_settings(user_settings_file):
-    settings = load_user_settings(user_settings_file)
+def test_read_json(user_settings_file):
+    settings = read_json(user_settings_file)
     assert 'user_currencies' in settings
     assert 'user_stocks' in settings
     assert settings['user_currencies'] == ["USD", "EUR"]
     assert settings['user_stocks'] == ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
+
+def test_mask_sensitive_data():
+    sensitive_info = "1234-5678-9876-5432"
+    masked_info = mask_sensitive_data(sensitive_info)
+    assert masked_info == "****************"
