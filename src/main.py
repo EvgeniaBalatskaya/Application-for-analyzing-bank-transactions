@@ -17,8 +17,12 @@ def run_main():
     transactions_file = "data/operations.xlsx"
     user_settings_file = "user_settings.json"
 
-    transactions = read_transactions(transactions_file)
-    user_settings = load_user_settings(user_settings_file)
+    try:
+        transactions = read_transactions(transactions_file)
+        user_settings = load_user_settings(user_settings_file)
+    except FileNotFoundError as e:
+        logging.error(e)
+        return
 
     response = main_page(date_str, transactions, user_settings)
 
