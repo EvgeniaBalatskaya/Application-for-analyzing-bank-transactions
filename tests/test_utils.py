@@ -1,62 +1,55 @@
-import unittest
-from unittest.mock import patch, mock_open, MagicMock
-import json
+import pytest
 import pandas as pd
-from src.utils import read_excel, read_json, mask_sensitive_data
+import json
+from src.utils import read_transactions, load_user_settings
+import os
 
+# Создание временного Excel файла для тестов
+@pytest.fixture
+def transactions_file(tmp_path):
+    data = {
+        'Дата операции': ['2025-03-01', '2025-03-02', '2025-03-03'],
+        'Дата платежа': ['2025-03-01', '2025-03-02', '2025-03-03'],
+        'Номер карты': ['1234', '5678', '1234'],
+        'Статус': ['OK', 'OK', 'OK'],
+        'Сумма операции': [100, 200, 300],
+        'Валюта операции': ['USD', 'USD', 'USD'],
+        'Сумма платежа': [100, 200, 300],
+        'Валюта платежа': ['RUB', 'RUB', 'RUB'],
+        'Кешбэк': [1, 2, 3],
+        'Категория': ['Супермаркеты', 'Фастфуд', 'Супермаркеты'],
+        'MCC': [5411, 5814, 5411],
+        'Описание': ['Покупка в магазине', 'Покупка в фастфуде', 'Покупка в магазине'],
+        'Бонусы (включая кешбэк)': [1, 2, 3],
+        'Округление на «Инвесткопилку»': [0, 0, 0],
+        'Сумма операции с округлением': [100, 200, 300]
+    }
+    df = pd.DataFrame(data)
+    file_path = tmp_path / "operations.xlsx"
+    df.to_excel(file_path, index=False)
+    return file_path
 
-class TestUtilsFunctions(unittest.TestCase):
+# Создание временного JSON файла для тестов
+@pytest.fixture
+def user_settings_file(tmp_path):
+    data = {
+        "user_currencies": ["USD", "EUR"],
+        "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
+    }
+    file_path = tmp_path / "user_settings.json"
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f)
+    return file_path
 
-    @patch('utils.pd.read_excel')
-    def test_read_excel_success(self, mock_read_excel):
-        # Мокируем успешное чтение Excel-файла
-        mock_data = pd.DataFrame({"Column1": [1, 2, 3], "Column2": [4, 5, 6]})
-        mock_read_excel.return_value = mock_data
+def test_read_transactions(transactions_file):
+    df = read_transactions(transactions_file)
+    assert not df.empty
+    assert len(df) == 3
+    assert df['Дата операции'].iloc[0] == '2025-03-01'
 
-        result = read_excel("data/operations.xlsx")
-
-        self.assertIsInstance(result, pd.DataFrame)
-        self.assertEqual(result.shape, (3, 2))  # Проверяем размер данных
-
-    @patch('utils.pd.read_excel')
-    def test_read_excel_failure(self, mock_read_excel):
-        # Мокируем ошибку при чтении Excel-файла
-        mock_read_excel.side_effect = Exception("Ошибка чтения файла")
-
-        result = read_excel("data/operations.xlsx")
-
-        self.assertIsNone(result)
-
-    @patch("builtins.open", new_callable=mock_open, read_data='{"key": "value"}')
-    def test_read_json_success(self, mock_file):
-        # Мокируем успешное чтение JSON-файла
-        result = read_json("data/transactions.json")
-
-        self.assertEqual(result, {"key": "value"})
-        mock_file.assert_called_once_with("data/transactions.json", "r")
-
-    @patch("builtins.open", new_callable=mock_open)
-    def test_read_json_failure(self, mock_file):
-        # Мокируем ошибку при чтении JSON-файла
-        mock_file.side_effect = Exception("Ошибка чтения файла")
-
-        result = read_json("data/transactions.json")
-
-        self.assertIsNone(result)
-
-    def test_mask_sensitive_data(self):
-        # Проверяем маскировку строки
-        sensitive_data = "1234-5678-9876-5432"
-        result = mask_sensitive_data(sensitive_data)
-
-        self.assertEqual(result, "****************")
-
-        # Проверяем, что данные не строкового типа не маскируются
-        non_sensitive_data = 12345
-        result_non_sensitive = mask_sensitive_data(non_sensitive_data)
-
-        self.assertEqual(result_non_sensitive, 12345)
-
-
-if __name__ == '__main__':
-    unittest.main()
+def test_load_user_settings(user_settings_file):
+    settings = load_user_settings(user_settings_file)
+    assert 'user_currencies' in settings
+    assert 'user_stocks' in settings
+    assert settings['user_currencies'] == ["USD", "EUR"]
+    assert settings['user_stocks'] == ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
