@@ -1,94 +1,42 @@
-import json
-import re
+def calculate_cashback(categories, spending):
+    """Вычисление кешбэка по категориям"""
+    cashback_rates = {
+        "Food": 0.05,  # 5% кешбэка
+        "Transport": 0.03,  # 3% кешбэка
+        "Entertainment": 0.07,  # 7% кешбэка
+    }
 
-from typing import Any, Dict, List
+    cashback = {}
+    for category, amount in spending.items():
+        if category in cashback_rates:
+            cashback[category] = amount * cashback_rates[category]
 
-
-# Анализ выгодности категорий повышенного кешбэка
-def cashback_analysis(data: List[Dict[str, Any]], year: int, month: int) -> Dict[str, float]:
-    """
-    Функция для анализа выгодности категорий для кешбэка.
-
-    :param data: Список транзакций.
-    :param year: Год, за который проводится анализ.
-    :param month: Месяц, за который проводится анализ.
-    :return: Словарь с категориями и суммами кешбэка.
-    """
-    category_totals: Dict[str, float] = {}
-    for transaction in data:
-        date = transaction["Дата операции"]
-        if date.startswith(f"{year}-{month:02d}"):
-            category = transaction["Категория"]
-            cashback = transaction["Сумма операции"] * 0.05  # Пример кешбэка 5%
-            category_totals[category] = category_totals.get(category, 0.0) + cashback
-
-    return category_totals
+    return cashback
 
 
-# Инвесткопилка
-def investment_bank(month: str, transactions: List[Dict[str, Any]], limit: int) -> float:
-    """
-    Функция для расчета суммы, которую можно отложить в Инвесткопилку.
+def analyze_expenses(expenses):
+    """Анализ расходов, классификация по категориям"""
+    categorized_expenses = {}
+    for expense in expenses:
+        category = expense["category"]
+        amount = expense["amount"]
+        if category not in categorized_expenses:
+            categorized_expenses[category] = 0
+        categorized_expenses[category] += amount
 
-    :param month: Месяц для расчета в формате 'YYYY-MM'.
-    :param transactions: Список транзакций.
-    :param limit: Предел округления в рублях.
-    :return: Сумма, отложенная в Инвесткопилку.
-    """
-    total_investment: float = 0.0
-    for transaction in transactions:
-        date = transaction["Дата операции"]
-        amount = transaction["Сумма операции"]
-
-        # Проверяем, что транзакция происходит в указанном месяце
-        if date.startswith(month):
-            # Округляем сумму до ближайшего значения, кратного limit
-            rounded_amount = (amount // limit + 1) * limit if amount % limit != 0 else amount
-            total_investment += rounded_amount - amount
-
-    return round(total_investment, 2)
+    return categorized_expenses
 
 
-# Простой поиск
-def simple_search(data: List[Dict[str, Any]], query: str) -> str:
-    """
-    Функция для поиска всех транзакций, содержащих строку в описании или категории.
-    """
-    # Фильтрация транзакций, содержащих query в описании или категории
-    filtered_data = filter(
-        lambda transaction: query.lower() in transaction["Описание"].lower()
-        or query.lower() in transaction["Категория"].lower(),
-        data,
-    )
+# Пример использования
+if __name__ == "__main__":
+    spending = {"Food": 200, "Transport": 50, "Entertainment": 100}
+    cashback = calculate_cashback([], spending)
+    print("Cashback:", cashback)
 
-    return json.dumps(list(filtered_data), ensure_ascii=False, indent=4)
-
-
-# Поиск по телефонным номерам
-def search_by_phone_number(data: List[Dict[str, Any]]) -> str:
-    """
-    Функция для поиска всех транзакций, содержащих мобильные номера в описании.
-    """
-    phone_number_pattern = r"\+?\d{1,2}[-\s]?\(?\d{1,4}\)?[-\s]?\d{1,4}[-\s]?\d{1,4}"
-
-    # Фильтрация транзакций с мобильными номерами в описании
-    filtered_data = filter(lambda transaction: re.search(phone_number_pattern, transaction.get("Описание", "")), data)
-
-    return json.dumps(list(filtered_data), ensure_ascii=False, indent=4)
-
-
-# Поиск переводов физическим лицам
-def search_personal_transfers(data: List[Dict[str, Any]]) -> str:
-    """
-    Функция для поиска переводов физическим лицам по описанию.
-    """
-    transfer_pattern = r"[А-Яа-яЁё]+\s[А-Яа-яЁё]\."
-
-    # Фильтрация переводов с именами в описании
-    filtered_data = filter(
-        lambda transaction: "Переводы" in transaction.get("Категория", "")
-        and re.search(transfer_pattern, transaction.get("Описание", "")),
-        data,
-    )
-
-    return json.dumps(list(filtered_data), ensure_ascii=False, indent=4)
+    expenses = [
+        {"category": "Food", "amount": 200},
+        {"category": "Transport", "amount": 50},
+        {"category": "Entertainment", "amount": 100},
+        {"category": "Food", "amount": 50},
+    ]
+    print("Categorized Expenses:", analyze_expenses(expenses))

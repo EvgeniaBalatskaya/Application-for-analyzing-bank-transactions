@@ -18,6 +18,8 @@ black = "^23.3.0"
 isort = "^5.12.0"
 mypy = "^1.4.1"
 pytest-cov = "^6.0.0"
+types-requests = "^2.32.0.20250306"
+types-flask = "^1.1.6"
 
 [tool.black]
 line-length = 119
