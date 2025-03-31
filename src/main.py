@@ -1,34 +1,29 @@
-import os
+import json
+import logging
+from datetime import datetime
+import pandas as pd
+from src.views import main_page
+from src.utils import load_user_settings, read_transactions
 
-from src.services import analyze_expenses, calculate_cashback
-from src.utils import mask_sensitive_data, read_excel, read_json
-from src.views import generate_report
+# Логирование
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def main():
-    # Чтение данных из файла
-    file_path = "data/operations.xlsx"
-    excel_data = read_excel(file_path)
+def run_main():
+    """
+    Основная функция для запуска приложения.
+    """
+    date_str = "2025-03-31 12:52:05"  # Пример даты и времени
+    transactions_file = "data/operations.xlsx"
+    user_settings_file = "user_settings.json"
 
-    if excel_data is not None:
-        # Преобразование данных в формат, который можем обработать
-        expenses = excel_data.to_dict(orient="records")
+    transactions = read_transactions(transactions_file)
+    user_settings = load_user_settings(user_settings_file)
 
-        # Анализ расходов
-        categorized_expenses = analyze_expenses(expenses)
-        print(f"Categorized Expenses: {categorized_expenses}")
+    response = main_page(date_str, transactions, user_settings)
 
-        # Расчет кешбэка
-        cashback = calculate_cashback([], categorized_expenses)
-        print(f"Cashback: {cashback}")
-
-        # Генерация отчета
-        report = generate_report(expenses)
-        print(f"Generated Report: {report}")
-
-    else:
-        print("Не удалось загрузить данные из Excel-файла.")
+    print(json.dumps(response, ensure_ascii=False, indent=4))
 
 
 if __name__ == "__main__":
-    main()
+    run_main()

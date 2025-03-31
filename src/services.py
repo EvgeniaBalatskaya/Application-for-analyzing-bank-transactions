@@ -1,42 +1,27 @@
-def calculate_cashback(categories, spending):
-    """Вычисление кешбэка по категориям"""
-    cashback_rates = {
-        "Food": 0.05,  # 5% кешбэка
-        "Transport": 0.03,  # 3% кешбэка
-        "Entertainment": 0.07,  # 7% кешбэка
-    }
+import json
+import logging
+from datetime import datetime
 
-    cashback = {}
-    for category, amount in spending.items():
-        if category in cashback_rates:
-            cashback[category] = amount * cashback_rates[category]
-
-    return cashback
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def analyze_expenses(expenses):
-    """Анализ расходов, классификация по категориям"""
-    categorized_expenses = {}
-    for expense in expenses:
-        category = expense["category"]
-        amount = expense["amount"]
-        if category not in categorized_expenses:
-            categorized_expenses[category] = 0
-        categorized_expenses[category] += amount
+def analyze_cashback_categories(data: list, year: int, month: int) -> str:
+    """
+    Анализирует выгодные категории повышенного кешбэка.
 
-    return categorized_expenses
+    :param data: Список транзакций.
+    :param year: Год для анализа.
+    :param month: Месяц для анализа.
+    :return: JSON с анализом.
+    """
+    analysis = {}
+    for transaction in data:
+        if transaction['Дата операции'].year == year and transaction['Дата операции'].month == month:
+            category = transaction['Категория']
+            cashback = transaction['Кешбэк']
+            if category not in analysis:
+                analysis[category] = 0
+            analysis[category] += cashback
 
-
-# Пример использования
-if __name__ == "__main__":
-    spending = {"Food": 200, "Transport": 50, "Entertainment": 100}
-    cashback = calculate_cashback([], spending)
-    print("Cashback:", cashback)
-
-    expenses = [
-        {"category": "Food", "amount": 200},
-        {"category": "Transport", "amount": 50},
-        {"category": "Entertainment", "amount": 100},
-        {"category": "Food", "amount": 50},
-    ]
-    print("Categorized Expenses:", analyze_expenses(expenses))
+    logging.info("Analyzed cashback categories for %d-%02d", year, month)
+    return json.dumps(analysis, ensure_ascii=False)

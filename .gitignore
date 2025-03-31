@@ -1,4 +1,19 @@
+# Python
+*.py[cod]
+__pycache__/
+*.so
+
+# Virtual Environment
 .venv/
+
+# Poetry
+poetry.lock
+
+# VS Code
+.vscode/
+
+# PyCharm
 .idea/
-__pycache__/pwd
+
+# Environment Variables
 .env
