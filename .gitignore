@@ -1,4 +1,22 @@
+# Logs
+logs/
+*.log
+
+# Python specific
+__pycache__/
+*.py[cod]
+
+# Virtual environment
 .venv/
+.env
+
+# IDE specific
 .idea/
-__pycache__/pwd
+.vscode/
+
+# Data files
+*.csv
+*.xlsx
+
+# Secrets
 .env
