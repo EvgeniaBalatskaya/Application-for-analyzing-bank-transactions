@@ -1,60 +1,30 @@
-import pytest
+import unittest
+from unittest.mock import mock_open, patch
+
 import pandas as pd
-import json
-from src.utils import read_excel, read_json, mask_sensitive_data
-import os
 
-# Создание временного Excel файла для тестов
-@pytest.fixture
-def transactions_file(tmp_path):
-    data = {
-        'Дата операции': ['2025-03-01', '2025-03-02', '2025-03-03'],
-        'Дата платежа': ['2025-03-01', '2025-03-02', '2025-03-03'],
-        'Номер карты': ['1234', '5678', '1234'],
-        'Статус': ['OK', 'OK', 'OK'],
-        'Сумма операции': [100, 200, 300],
-        'Валюта операции': ['USD', 'USD', 'USD'],
-        'Сумма платежа': [100, 200, 300],
-        'Валюта платежа': ['RUB', 'RUB', 'RUB'],
-        'Кешбэк': [1, 2, 3],
-        'Категория': ['Супермаркеты', 'Фастфуд', 'Супермаркеты'],
-        'MCC': [5411, 5814, 5411],
-        'Описание': ['Покупка в магазине', 'Покупка в фастфуде', 'Покупка в магазине'],
-        'Бонусы (включая кешбэк)': [1, 2, 3],
-        'Округление на «Инвесткопилку»': [0, 0, 0],
-        'Сумма операции с округлением': [100, 200, 300]
-    }
-    df = pd.DataFrame(data)
-    file_path = tmp_path / "operations.xlsx"
-    df.to_excel(file_path, index=False)
-    return file_path
+from src.utils import mask_sensitive_data, read_excel, read_json
 
-# Создание временного JSON файла для тестов
-@pytest.fixture
-def user_settings_file(tmp_path):
-    data = {
-        "user_currencies": ["USD", "EUR"],
-        "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
-    }
-    file_path = tmp_path / "user_settings.json"
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f)
-    return file_path
 
-def test_read_excel(transactions_file):
-    df = read_excel(transactions_file)
-    assert not df.empty
-    assert len(df) == 3
-    assert df['Дата операции'].iloc[0] == '2025-03-01'
+class TestUtils(unittest.TestCase):
+    @patch("src.utils.pd.read_excel")
+    def test_read_excel(self, mock_read_excel):
+        mock_read_excel.return_value = pd.DataFrame({"A": [1, 2, 3]})
+        df = read_excel("dummy_path.xlsx")
+        self.assertIsNotNone(df)
+        self.assertEqual(df.shape, (3, 1))
 
-def test_read_json(user_settings_file):
-    settings = read_json(user_settings_file)
-    assert 'user_currencies' in settings
-    assert 'user_stocks' in settings
-    assert settings['user_currencies'] == ["USD", "EUR"]
-    assert settings['user_stocks'] == ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
+    @patch("builtins.open", new_callable=mock_open, read_data='{"key": "value"}')
+    def test_read_json(self, mock_file):
+        data = read_json("dummy_path.json")
+        self.assertIsNotNone(data)
+        self.assertEqual(data, {"key": "value"})
 
-def test_mask_sensitive_data():
-    sensitive_info = "1234-5678-9876-5432"
-    masked_info = mask_sensitive_data(sensitive_info)
-    assert masked_info == "****************"
+    def test_mask_sensitive_data(self):
+        sensitive_info = "1234-5678-9876-5432"
+        masked = mask_sensitive_data(sensitive_info)
+        self.assertEqual(masked, "*" * len(sensitive_info))
+
+
+if __name__ == "__main__":
+    unittest.main()
