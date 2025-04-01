@@ -1,78 +1,119 @@
-import unittest
-from unittest.mock import patch, MagicMock
 import json
-from src.reports import get_exchange_rates, get_stock_prices, generate_report_with_logging
+import unittest
+
+from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import requests
+
+from src.reports import generate_report, generate_report_with_logging, get_exchange_rates, get_stock_prices
 
 
-class TestReportsFunctions(unittest.TestCase):
-
-    @patch('reports.requests.get')
+class TestReports(unittest.TestCase):
+    @patch("src.reports.requests.get")
     def test_get_exchange_rates_success(self, mock_get):
-        # Мокируем успешный запрос для курсов валют
+        # Mock a successful API response
         mock_response = MagicMock()
-        mock_response.json.return_value = {'rates': {'EUR': 0.85}}
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"rates": {"EUR": 0.85, "JPY": 110.0}}
         mock_get.return_value = mock_response
 
         result = get_exchange_rates()
+        self.assertEqual(result, {"EUR": 0.85, "JPY": 110.0})
 
-        self.assertEqual(result, {'EUR': 0.85})
-
-    @patch('reports.requests.get')
+    @patch("src.reports.requests.get")
     def test_get_exchange_rates_failure(self, mock_get):
-        # Мокируем ошибку при запросе курсов валют
-        mock_get.side_effect = requests.exceptions.RequestException("API Error")
+        # Mock a failed API request
+        mock_get.side_effect = requests.RequestException("API error")
 
         result = get_exchange_rates()
-
         self.assertEqual(result, {})
 
-    @patch('reports.requests.get')
+    @patch("src.reports.requests.get")
     def test_get_stock_prices_success(self, mock_get):
-        # Мокируем успешный запрос для цен на акции
+        # Mock a successful API response
         mock_response = MagicMock()
-        mock_response.json.return_value = {'AAPL': 150.0}
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"AAPL": 150.0, "GOOGL": 2800.0}
         mock_get.return_value = mock_response
 
         result = get_stock_prices()
+        self.assertEqual(result, {"AAPL": 150.0, "GOOGL": 2800.0})
 
-        self.assertEqual(result, {'AAPL': 150.0})
-
-    @patch('reports.requests.get')
+    @patch("src.reports.requests.get")
     def test_get_stock_prices_failure(self, mock_get):
-        # Мокируем ошибку при запросе цен на акции
-        mock_get.side_effect = requests.exceptions.RequestException("API Error")
+        # Mock a failed API request
+        mock_get.side_effect = requests.RequestException("API error")
 
         result = get_stock_prices()
-
         self.assertEqual(result, {})
 
-    @patch('reports.get_exchange_rates')
-    @patch('reports.get_stock_prices')
-    @patch('reports.logging.info')
-    def test_generate_report_with_logging(self, mock_info, mock_get_stock_prices, mock_get_exchange_rates):
-        # Мокируем функции для получения курсов валют и цен на акции
-        mock_get_exchange_rates.return_value = {'EUR': 0.85}
-        mock_get_stock_prices.return_value = {'AAPL': 150.0}
+    @patch("src.reports.get_exchange_rates")
+    @patch("src.reports.get_stock_prices")
+    @patch("src.reports.datetime")
+    def test_generate_report(self, mock_datetime, mock_get_stock_prices, mock_get_exchange_rates):
+        # Mock the return value of get_exchange_rates
+        mock_get_exchange_rates.return_value = {"EUR": 0.85, "JPY": 110.0}
 
-        expenses = [{"category": "Food", "amount": 100}, {"category": "Transport", "amount": 50}]
+        # Mock the return value of get_stock_prices
+        mock_get_stock_prices.return_value = {"AAPL": 150.0, "GOOGL": 2800.0}
 
-        # Генерация отчета
-        result = generate_report_with_logging(expenses)
+        # Mock the current date and time
+        mock_datetime.now.return_value = datetime(2025, 3, 31, 16, 34, 34)
 
-        # Проверяем, что логирование вызвалось
-        mock_info.assert_called_once()
+        # Sample expenses
+        expenses = [{"category": "Food", "amount": 100.0}, {"category": "Transport", "amount": 50.0}]
 
-        # Проверяем правильность отчета
+        # Expected report
         expected_report = {
-            "date": result['date'],  # Дата будет динамической
+            "date": "2025-03-31T16:34:34",
             "expenses": expenses,
-            "exchange_rates": {'EUR': 0.85},
-            "stock_prices": {'AAPL': 150.0}
+            "exchange_rates": {"EUR": 0.85, "JPY": 110.0},
+            "stock_prices": {"AAPL": 150.0, "GOOGL": 2800.0},
         }
 
-        # Проверка на соответствие структуры отчета
-        self.assertTrue(json.dumps(result, indent=4), json.dumps(expected_report, indent=4))
+        # Generate the report
+        report = generate_report(expenses)
+
+        # Check if the report matches the expected report
+        self.assertEqual(json.loads(report), expected_report)
+
+    @patch("src.reports.get_exchange_rates")
+    @patch("src.reports.get_stock_prices")
+    @patch("src.reports.logging.info")
+    @patch("src.reports.datetime")
+    def test_generate_report_with_logging(
+        self, mock_datetime, mock_logging_info, mock_get_stock_prices, mock_get_exchange_rates
+    ):
+        # Mock the return value of get_exchange_rates
+        mock_get_exchange_rates.return_value = {"EUR": 0.85, "JPY": 110.0}
+
+        # Mock the return value of get_stock_prices
+        mock_get_stock_prices.return_value = {"AAPL": 150.0, "GOOGL": 2800.0}
+
+        # Mock the current date and time
+        mock_datetime.now.return_value = datetime(2025, 3, 31, 16, 34, 34)
+
+        # Sample expenses
+        expenses = [{"category": "Food", "amount": 100.0}, {"category": "Transport", "amount": 50.0}]
+
+        # Expected report
+        expected_report = {
+            "date": "2025-03-31T16:34:34",
+            "expenses": expenses,
+            "exchange_rates": {"EUR": 0.85, "JPY": 110.0},
+            "stock_prices": {"AAPL": 150.0, "GOOGL": 2800.0},
+        }
+
+        # Generate the report with logging
+        report = generate_report_with_logging(expenses)
+
+        # Check if the report matches the expected report
+        self.assertEqual(report, expected_report)
+
+        # Check if logging was called with the correct data
+        mock_logging_info.assert_called_once_with(f"Generated Report: {json.dumps(expected_report, indent=4)}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

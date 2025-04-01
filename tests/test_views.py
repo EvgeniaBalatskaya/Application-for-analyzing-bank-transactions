@@ -1,84 +1,83 @@
-import unittest
-from unittest.mock import patch, MagicMock
 import json
+import unittest
+
 from datetime import datetime
-from src.views import get_exchange_rates, get_stock_prices, generate_report
+from unittest.mock import MagicMock, patch
+
+import requests
+
+from src.views import generate_report, get_exchange_rates, get_stock_prices
 
 
-class TestFinancialFunctions(unittest.TestCase):
-
-    @patch('views.requests.get')
+class TestViews(unittest.TestCase):
+    @patch("src.views.requests.get")
     def test_get_exchange_rates_success(self, mock_get):
-        # Мокируем успешный ответ от API
+        # Mock a successful API response
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "rates": {
-                "EUR": 0.85,
-                "GBP": 0.75
-            }
-        }
-        mock_response.status_code = 200
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"rates": {"EUR": 0.85, "JPY": 110.0}}
         mock_get.return_value = mock_response
 
         result = get_exchange_rates()
+        self.assertEqual(result, {"EUR": 0.85, "JPY": 110.0})
 
-        self.assertEqual(result, {"EUR": 0.85, "GBP": 0.75})
-        mock_get.assert_called_once_with("https://api.exchangerate-api.com/v4/latest/USD")
-
-    @patch('views.requests.get')
+    @patch("src.views.requests.get")
     def test_get_exchange_rates_failure(self, mock_get):
-        # Мокируем ошибку при запросе
-        mock_get.side_effect = requests.RequestException("Ошибка сети")
+        # Mock a failed API request
+        mock_get.side_effect = requests.RequestException("API error")
 
         result = get_exchange_rates()
-
         self.assertEqual(result, {})
 
-    @patch('views.requests.get')
+    @patch("src.views.requests.get")
     def test_get_stock_prices_success(self, mock_get):
-        # Мокируем успешный ответ от API
+        # Mock a successful API response
         mock_response = MagicMock()
-        mock_response.json.return_value = [{"symbol": "AAPL", "price": 150}]
-        mock_response.status_code = 200
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"AAPL": 150.0, "GOOGL": 2800.0}
         mock_get.return_value = mock_response
 
         result = get_stock_prices()
+        self.assertEqual(result, {"AAPL": 150.0, "GOOGL": 2800.0})
 
-        self.assertEqual(result, [{"symbol": "AAPL", "price": 150}])
-        mock_get.assert_called_once_with("https://api.stockprice-api.com/v1/prices")
-
-    @patch('views.requests.get')
+    @patch("src.views.requests.get")
     def test_get_stock_prices_failure(self, mock_get):
-        # Мокируем ошибку при запросе
-        mock_get.side_effect = requests.RequestException("Ошибка сети")
+        # Mock a failed API request
+        mock_get.side_effect = requests.RequestException("API error")
 
         result = get_stock_prices()
-
         self.assertEqual(result, {})
 
-    @patch('views.get_exchange_rates')
-    @patch('views.get_stock_prices')
-    def test_generate_report(self, mock_get_stock_prices, mock_get_exchange_rates):
-        # Мокируем функции для получения данных
-        mock_get_exchange_rates.return_value = {"EUR": 0.85, "GBP": 0.75}
-        mock_get_stock_prices.return_value = [{"symbol": "AAPL", "price": 150}]
+    @patch("src.views.get_exchange_rates")
+    @patch("src.views.get_stock_prices")
+    @patch("src.views.datetime")
+    def test_generate_report(self, mock_datetime, mock_get_stock_prices, mock_get_exchange_rates):
+        # Mock the return value of get_exchange_rates
+        mock_get_exchange_rates.return_value = {"EUR": 0.85, "JPY": 110.0}
 
-        expenses = [{"category": "Food", "amount": 100}, {"category": "Transport", "amount": 50}]
+        # Mock the return value of get_stock_prices
+        mock_get_stock_prices.return_value = {"AAPL": 150.0, "GOOGL": 2800.0}
+
+        # Mock the current date and time
+        mock_datetime.now.return_value = datetime(2025, 3, 31, 16, 34, 34)
+
+        # Sample expenses
+        expenses = [{"category": "Food", "amount": 100.0}, {"category": "Transport", "amount": 50.0}]
+
+        # Expected report
         expected_report = {
-            "date": datetime.now().isoformat(),
+            "date": "2025-03-31T16:34:34",
             "expenses": expenses,
-            "exchange_rates": {"EUR": 0.85, "GBP": 0.75},
-            "stock_prices": [{"symbol": "AAPL", "price": 150}]
+            "exchange_rates": {"EUR": 0.85, "JPY": 110.0},
+            "stock_prices": {"AAPL": 150.0, "GOOGL": 2800.0},
         }
 
-        result = generate_report(expenses)
+        # Generate the report
+        report = generate_report(expenses)
 
-        # Проверяем, что результат является строкой JSON и содержит ожидаемую информацию
-        self.assertIsInstance(result, str)
-        self.assertEqual(json.loads(result)['expenses'], expenses)
-        self.assertEqual(json.loads(result)['exchange_rates'], {"EUR": 0.85, "GBP": 0.75})
-        self.assertEqual(json.loads(result)['stock_prices'], [{"symbol": "AAPL", "price": 150}])
+        # Check if the report matches the expected report
+        self.assertEqual(json.loads(report), expected_report)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

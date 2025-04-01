@@ -1,47 +1,55 @@
 import json
-import logging
-from services import convert_xlsx_to_json, write_transactions_to_json, process_transaction, mask_data
-from reports import generate_report_with_logging
-from views import generate_report
+import os
+import sys
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from src.services import analyze_expenses, calculate_cashback
+from src.utils import read_excel
+from src.views import generate_report
 
 
-def main():
-    try:
-        # 1. Чтение данных о транзакциях из Excel
-        transactions = convert_xlsx_to_json('transactions.xlsx')
-        if not transactions:
-            logger.error("Не удалось загрузить транзакции из файла.")
+# Добавление корневого каталога проекта в sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def main() -> None:
+    # Чтение данных из файла
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_dir, "../data/operations.xlsx")
+    excel_data = read_excel(file_path)
+
+    if excel_data is not None:
+        # Преобразование данных в формат, который можем обработать
+        expenses = []
+        for record in excel_data.to_dict(orient="records"):
+            if "Категория" in record and "Сумма операции" in record:
+                expenses.append(
+                    {
+                        "category": record["Категория"],
+                        "amount": record["Сумма операции"],
+                    }
+                )
+            else:
+                print(f"Запись пропущена из-за отсутствия ключей: {record}")
+
+        if not expenses:
+            print("Нет действительных записей для обработки.")
             return
 
-        # 2. Обработка каждой транзакции (конвертация валюты и маскировка данных)
-        processed_transactions = []
-        for transaction in transactions:
-            # Конвертируем валюту
-            processed_transaction = process_transaction(transaction, 'USD', 'EUR')
-            if processed_transaction:
-                # Маскируем данные
-                masked_transaction = mask_data(processed_transaction)
-                processed_transactions.append(masked_transaction)
+        # Анализ расходов
+        categorized_expenses = analyze_expenses(expenses)
+        print(f"Categorized Expenses: {json.dumps(categorized_expenses, ensure_ascii=False, indent=4)}")
 
-        # 3. Генерация отчета
-        report = generate_report_with_logging(processed_transactions)
-        logger.info("Отчет сгенерирован успешно.")
+        # Расчет кэшбэка
+        cashback = calculate_cashback([], categorized_expenses)
+        print(f"Cashback: {json.dumps(cashback, ensure_ascii=False, indent=4)}")
 
-        # 4. Запись обработанных транзакций в JSON-файл
-        write_transactions_to_json(processed_transactions, 'processed_transactions.json')
+        # Генерация отчета
+        report = generate_report(expenses)
+        report_json = json.loads(report)
+        print(f"Generated Report: {json.dumps(report_json, ensure_ascii=False, indent=4)}")
 
-        # 5. Генерация отчета в формате JSON (для внешнего использования)
-        external_report = generate_report(processed_transactions)
-        with open('external_report.json', 'w', encoding='utf-8') as report_file:
-            report_file.write(external_report)
-        logger.info("Отчет внешнего формата сохранен в external_report.json.")
-
-    except Exception as e:
-        logger.error(f"Ошибка выполнения main: {e}")
+    else:
+        print("Не удалось загрузить данные из Excel-файла.")
 
 
 if __name__ == "__main__":

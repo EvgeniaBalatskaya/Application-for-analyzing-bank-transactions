@@ -1,0 +1,1 @@
+2025-04-01 15:02:43,468 - __main__ - ERROR - Ошибка соединения при получении цен на акции: HTTPSConnectionPool(host='api.stockprice-api.com', port=443): Max retries exceeded with url: /v1/prices (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000200CD36B390>: Failed to resolve 'api.stockprice-api.com' ([Errno 11001] getaddrinfo failed)"))
