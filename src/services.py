@@ -1,4 +1,9 @@
+import logging
+
 from typing import Any, Dict, List
+
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_cashback(categories: List[str], spending: Dict[str, float]) -> Dict[str, float]:

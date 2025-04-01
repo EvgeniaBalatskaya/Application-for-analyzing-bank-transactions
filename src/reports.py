@@ -7,6 +7,9 @@ from typing import Any, Dict, List
 import requests
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_exchange_rates() -> Dict[str, float]:
     """
     Получить текущие курсы валют через API

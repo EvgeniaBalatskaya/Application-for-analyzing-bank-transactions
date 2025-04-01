@@ -1,8 +1,12 @@
 import json
+import logging
 
 from typing import Any, Dict, Optional
 
 import pandas as pd
+
+
+logger = logging.getLogger(__name__)
 
 
 def read_excel(file_path: str) -> Optional[pd.DataFrame]:

@@ -1,4 +1,5 @@
 import json
+import logging
 
 from datetime import datetime
 from typing import Any, Dict, List
@@ -6,42 +7,41 @@ from typing import Any, Dict, List
 import requests
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_exchange_rates() -> Dict[str, float]:
-    """
-    Получить текущие курсы валют через API
-    """
+    logger.info("Получение курсов валют")
     try:
         response = requests.get("https://api.exchangerate-api.com/v4/latest/USD")
-        response.raise_for_status()  # Поднимет исключение для плохого ответа
+        response.raise_for_status()
         data = response.json()
         if isinstance(data["rates"], dict):
+            logger.debug("Курсы валют успешно получены")
             return data["rates"]
         return {}
     except requests.RequestException as e:
-        print(f"Ошибка при получении курсов валют: {e}")
+        logger.error(f"Ошибка при получении курсов валют: {e}")
         return {}
 
 
 def get_stock_prices() -> Dict[str, Any]:
-    """
-    Получить текущие цены на акции через API
-    """
+    logger.info("Получение цен на акции")
     try:
         response = requests.get("https://api.stockprice-api.com/v1/prices")
         response.raise_for_status()
         data = response.json()
         if isinstance(data, dict):
+            logger.debug("Цены на акции успешно получены")
             return data
         return {}
     except requests.RequestException as e:
-        print(f"Ошибка при получении цен на акции: {e}")
+        logger.error(f"Ошибка при получении цен на акции: {e}")
         return {}
 
 
 def generate_report(expenses: List[Dict[str, Any]]) -> str:
-    """
-    Генерация JSON-отчета с расходами и другими данными
-    """
+    logger.info("Генерация отчета")
     exchange_rates = get_exchange_rates()
     stock_prices = get_stock_prices()
 
@@ -52,10 +52,6 @@ def generate_report(expenses: List[Dict[str, Any]]) -> str:
         "stock_prices": stock_prices,
     }
 
-    return json.dumps(report, indent=4)
-
-
-# Пример использования
-if __name__ == "__main__":
-    expenses = [{"category": "Food", "amount": 100.0}, {"category": "Transport", "amount": 50.0}]
-    print(generate_report(expenses))
+    report_json = json.dumps(report, indent=4)
+    logger.debug(f"Отчет сгенерирован: {report_json}")
+    return report_json
